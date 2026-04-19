@@ -138,12 +138,12 @@ def process_gps_stream():
         count=50,
         block=2000,   # short block only (not infinite loop)
     )
-
     if not resp:
         return
 
     for _, messages in resp:
         for msg_id, data in messages:
+            print("GPS Stream --- message: ", msg_id)
 
             try:
                 entry = normalize(data)

@@ -8,10 +8,12 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 RUN pip install uv
-RUN pip install gunicorn
 
 COPY pyproject.toml uv.lock* ./
 RUN uv sync --frozen
+RUN uv pip freeze > requirements.txt
+RUN pip install requirements.txt
+
 
 COPY . .
 

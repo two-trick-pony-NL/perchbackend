@@ -64,6 +64,7 @@ def process_gps_batches():
 
             # process full trajectory
             process_trajectory(user_id, all_points)
+            print("Stop Detector --- Processing User: ", user_id, str(len(all_points)), " Points")
 
             # mark done
             GPSBatch.objects.filter(
