@@ -12,7 +12,7 @@ class LocationsConfig(AppConfig):
         from django_rq import get_scheduler
         from django.utils import timezone
 
-        scheduler = get_scheduler("default")
+        scheduler = get_scheduler("GPS_POINT_INGESTION")
 
         # prevent duplicate schedules
         existing_jobs = scheduler.get_jobs()
@@ -21,8 +21,10 @@ class LocationsConfig(AppConfig):
             getattr(job, "func", None) == "locations.tasks.process_gps_batches"
             for job in existing_jobs
         )
+        print("🤖Scheduling Stop Detector")
 
         if already_scheduled:
+            print("❌ -- Process is already running")
             return
 
         scheduler.schedule(
@@ -31,3 +33,4 @@ class LocationsConfig(AppConfig):
             interval=10,   # every N seconds
             repeat=None,
         )
+        print("✅  Stop Detector Scheduled")

@@ -57,6 +57,14 @@ RQ_QUEUES = {
     'default': {
         'URL': REDIS_URL,
         'DEFAULT_TIMEOUT': 360,
+    },
+    'GPS_POINT_INGESTION': {
+        'URL': REDIS_URL,
+        'DEFAULT_TIMEOUT': 360,
+    },
+    'STOP_DETECTION': {
+        'URL': REDIS_URL,
+        'DEFAULT_TIMEOUT': 360,
     }
 }
 

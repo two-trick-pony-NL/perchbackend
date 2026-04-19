@@ -6,10 +6,32 @@ class IngestionConfig(AppConfig):
     name = "ingestion"
 
     def ready(self):
-        # prevent double-run with autoreloader
         import os
         if os.environ.get("RUN_MAIN") != "true":
             return
 
-        from ingestion.services.gps_batch_runner import start_gps_ingestion
-        start_gps_ingestion()
+        from django_rq import get_scheduler
+        from django.utils import timezone
+
+        scheduler = get_scheduler("default")
+
+        # prevent duplicate scheduling across processes
+        existing_jobs = scheduler.get_jobs()
+
+        already_scheduled = any(
+            getattr(job, "func", None) == "ingestion.tasks.process_gps_stream"
+            for job in existing_jobs
+        )
+        print("🤖Scheduling GPS Point Ingestion")
+
+        if already_scheduled:
+            print("❌ -- Process is already running")
+            return
+
+        scheduler.schedule(
+            scheduled_time=timezone.now(),
+            func="ingestion.tasks.process_gps_stream",
+            interval=10,   # adjust as needed
+            repeat=None,
+        )
+        print("✅  GPS Point Ingestion Scheduled")

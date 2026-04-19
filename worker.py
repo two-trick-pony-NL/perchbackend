@@ -1,15 +1,16 @@
-# worker.py
 import os
 import django
 import redis
 import rq
+from dotenv import load_dotenv
 
-os.getenv()
+# load .env file
+load_dotenv("core/.env")
 
-# Fix fork crash on macOS with Pillow, Requests, PyArrow, etc.
+# macOS fork safety fix
 os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
 
-# Setup Django
+# Django setup
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
 django.setup()
 
@@ -18,11 +19,8 @@ REDIS_URL = (
     f"{os.getenv('REDIS_PASSWORD')}@"
     f"{os.getenv('REDIS_HOST')}:14988"
 )
+
 redis_conn = redis.from_url(REDIS_URL)
 
-
-
-
-# Start the worker
-worker = rq.Worker(['default'], connection=redis_conn)
+worker = rq.Worker(['default', 'GPS_POINT_INGESTION', 'STOP_DETECTION'], connection=redis_conn)
 worker.work()
