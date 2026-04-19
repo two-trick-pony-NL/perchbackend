@@ -4,14 +4,16 @@ EXPOSE 8000
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV UV_PROJECT_ENVIRONMENT=/app/.venv
 
 WORKDIR /app
 
 RUN pip install uv
 
-COPY pyproject.toml uv.lock* ./
+COPY pyproject.toml uv.lock ./
+
 RUN uv sync --frozen
 
 COPY . .
 
-CMD ["uv", "run", "gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD ["uv", "run", "gunicorn", "core.wsgi:application", "--bind", "0.0.0.0
