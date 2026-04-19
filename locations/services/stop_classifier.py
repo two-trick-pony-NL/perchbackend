@@ -1,104 +1,205 @@
 import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Point
+from shapely.ops import unary_union
 import movingpandas as mpd
 import h3
 
 from django.db import transaction
-
 from locations.models import LocationEvent, TransitEvent
-from ingestion.models import GPSBatch
 
+
+# ---------------------------------------------------------
+# CONFIG
+# ---------------------------------------------------------
 
 STOP_RADIUS_M = 50
-MIN_STOP_DURATION = "5min"
+MIN_STOP_DURATION = "2min"
+H3_RESOLUTION = 11
+
+INTERPOLATION_INTERVAL = pd.Timedelta("30s")
+STATIONARY_THRESHOLD_M = 100
+
+
+# ---------------------------------------------------------
+# BUILD TRAJECTORY GDF
+# ---------------------------------------------------------
+
+def build_gdf(points):
+    rows = [
+    {
+        "lat": p["lat"],
+        "lon": p["lon"],
+        "timestamp": pd.to_datetime(p["timestamp"], utc=True)
+        .tz_convert("UTC")
+        .tz_localize(None),        "accuracy": p.get("accuracy", 50),
+    }
+    for p in points
+]
+
+    df = pd.DataFrame(rows)
+    df = df.dropna(subset=["timestamp", "lat", "lon"])
+    df = df.sort_values("timestamp")
+    df = df.drop_duplicates(subset=["timestamp"], keep="last")
+    df = df.set_index("timestamp")
+
+    gdf = gpd.GeoDataFrame(
+        df,
+        geometry=gpd.points_from_xy(df["lon"], df["lat"]),
+        crs="EPSG:4326",
+    )
+
+    gdf = gdf.to_crs(epsg=3857)
+    gdf = interpolate_stationary_gaps(gdf)
+
+    return gdf
+
+
+# ---------------------------------------------------------
+# INTERPOLATION
+# ---------------------------------------------------------
+
+def interpolate_stationary_gaps(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """
+    For consecutive pings where displacement < STATIONARY_THRESHOLD_M,
+    fill the gap with synthetic points at INTERPOLATION_INTERVAL.
+
+    No upper bound on gap duration — a user stationary for days
+    produces one long stop, which is correct.
+    """
+    if len(gdf) < 2:
+        return gdf
+
+    synthetic_rows = []
+    coords = list(zip(gdf.index, gdf.geometry))
+
+    for (t0, geom0), (t1, geom1) in zip(coords, coords[1:]):
+        gap = t1 - t0
+        displacement_m = geom0.distance(geom1)
+
+        if displacement_m < STATIONARY_THRESHOLD_M and gap > INTERPOLATION_INTERVAL:
+            synthetic_time = t0 + INTERPOLATION_INTERVAL
+            while synthetic_time < t1:
+                synthetic_rows.append({
+                    "timestamp": synthetic_time,
+                    "geometry": geom0,
+                    "accuracy": gdf.loc[t0, "accuracy"] if "accuracy" in gdf.columns else 50,
+                    "synthetic": True,
+                })
+                synthetic_time += INTERPOLATION_INTERVAL
+
+    if not synthetic_rows:
+        return gdf
+
+    gdf = gdf.copy()
+    gdf["synthetic"] = False
+
+    synth_df = pd.DataFrame(synthetic_rows).set_index("timestamp")
+    synth_gdf = gpd.GeoDataFrame(synth_df, geometry="geometry", crs=gdf.crs)
+
+    combined = pd.concat([gdf, synth_gdf])
+    combined = combined.sort_index()
+    combined = combined[~combined.index.duplicated(keep="first")]
+
+    return combined
+
+
+# ---------------------------------------------------------
+# STOP DETECTION
+# ---------------------------------------------------------
+
+def detect_stops(gdf):
+    traj = mpd.Trajectory(gdf, traj_id="user_traj")
+    detector = mpd.TrajectoryStopDetector(traj)
+    stops = detector.get_stop_segments(
+        max_diameter=STOP_RADIUS_M,
+        min_duration=pd.Timedelta(MIN_STOP_DURATION),
+    )
+    return stops, traj
 
 
 # ---------------------------------------------------------
 # HELPERS
 # ---------------------------------------------------------
 
-def build_gdf(points):
-    rows = []
-
-    for p in points:
-        rows.append({
-            "geometry": Point(p["lon"], p["lat"]),
-            "timestamp": pd.to_datetime(p["timestamp"], utc=True),
-            "accuracy": p.get("accuracy", 0),
-        })
-
-    gdf = gpd.GeoDataFrame(rows, geometry="geometry", crs="EPSG:4326")
-    gdf = gdf.sort_values("timestamp")
-    return gdf
-
-
-def detect_stops(gdf):
-    traj = mpd.Trajectory(gdf, obj_id=1, t="timestamp")
-
-    detector = mpd.TrajectoryStopDetector(
-        traj,
-        max_diameter=STOP_RADIUS_M,
-        min_duration=pd.Timedelta(MIN_STOP_DURATION),
-    )
-
-    return detector.get_stop_segments()
-
-
-def to_h3(lat, lon, res=11):
-    return h3.geo_to_h3(lat, lon, res)
+def to_h3(lat, lon, res=H3_RESOLUTION):
+    return h3.latlng_to_cell(lat, lon, res)
 
 
 def get_center(segment):
-    c = segment.get_center()
-    return c.y, c.x
+    """
+    Return (lat, lon) centroid of a stop segment.
+    Segment geometry is in EPSG:3857 — reproject to 4326 first.
+    """
+    gdf = gpd.GeoDataFrame(segment.df.copy(), geometry="geometry", crs="EPSG:3857")
+    gdf_wgs = gdf.to_crs(epsg=4326)
+    centroid = unary_union(gdf_wgs.geometry).centroid
+    return centroid.y, centroid.x  # lat, lon
 
 
 # ---------------------------------------------------------
-# EVENT CREATION
+# STOP EVENT CREATION (with deduplication)
 # ---------------------------------------------------------
 
-def create_stop_event(user, segment):
+def create_stop_event(user_id, segment):
     df = segment.df
-
-    start_time = df["timestamp"].min()
-    end_time = df["timestamp"].max()
-
+    start_time = df.index.min()
+    end_time = df.index.max()
     lat, lon = get_center(segment)
 
-    return LocationEvent.objects.create(
-        user=user,
+    # Deduplicate: skip if a stop already exists in this time window
+    overlap = LocationEvent.objects.filter(
+        user_id=user_id,
         event_type=LocationEvent.Type.STOP,
-        status=LocationEvent.Status.CONFIRMED,
+        start_time__lt=end_time,
+        end_time__gt=start_time,
+    ).exists()
+
+    if overlap:
+        return None
+
+    return LocationEvent.objects.create(
+        user_id=user_id,
+        event_type=LocationEvent.Type.STOP,
         start_time=start_time,
         end_time=end_time,
         duration_seconds=int((end_time - start_time).total_seconds()),
-        h3=to_h3(lat, lon, 11),
+        h3=to_h3(lat, lon),
+        center_lat=lat,
+        center_lon=lon,
         confidence=0.9,
-        avg_accuracy_m=df["accuracy"].mean() if "accuracy" in df else None,
-        metadata={
-            "center_lat": lat,
-            "center_lon": lon,
-        },
+        avg_accuracy_m=df["accuracy"].mean() if "accuracy" in df.columns else None,
+        radius_m=STOP_RADIUS_M,
+        features={"point_count": len(df)},
     )
 
 
-def create_transits(user, events):
+# ---------------------------------------------------------
+# TRANSIT CREATION (with deduplication)
+# ---------------------------------------------------------
+
+def create_transits(user_id, events):
     events = sorted(events, key=lambda e: e.start_time)
 
-    for i in range(len(events) - 1):
-        a = events[i]
-        b = events[i + 1]
+    for a, b in zip(events, events[1:]):
+        exists = TransitEvent.objects.filter(
+            user_id=user_id,
+            start_event=a,
+            end_event=b,
+        ).exists()
+
+        if exists:
+            continue
 
         TransitEvent.objects.create(
-            user=user,
+            user_id=user_id,
             start_event=a,
             end_event=b,
             start_h3=a.h3,
             end_h3=b.h3,
             start_time=a.end_time,
             end_time=b.start_time,
-            duration_seconds=int((b.start_time - a.end_time).total_seconds()),
+            duration_seconds=max(int((b.start_time - a.end_time).total_seconds()), 0),
             distance_meters=0,
             speed_mps=0,
             metadata={},
@@ -106,40 +207,34 @@ def create_transits(user, events):
 
 
 # ---------------------------------------------------------
-# MAIN PIPELINE
+# PIPELINE
 # ---------------------------------------------------------
 
-def process_batch(batch: GPSBatch):
-    try:
-        if not batch.points:
-            batch.status = GPSBatch.Status.DONE
-            batch.save()
-            return
+def process_trajectory(user_id, points):
+    gdf = build_gdf(points)
 
-        gdf = build_gdf(batch.points)
+    if len(gdf) < 10:
+        print(f"⚠️  Too few points ({len(gdf)}), skipping.")
+        return
 
-        stop_segments = detect_stops(gdf)
+    stops, traj = detect_stops(gdf)
 
-        created_events = []
+    print(f"📦 GDF points : {len(gdf)}")
+    print(f"🧭 Traj points: {len(traj.df)}")
+    print(f"🛑 Stops found: {len(stops)}")
 
-        with transaction.atomic():
-            # 1. Create STOP events
-            for segment in stop_segments:
-                event = create_stop_event(batch.user, segment)
+    if not stops:
+        return
+
+    created_events = []
+
+    with transaction.atomic():
+        for segment in stops:
+            event = create_stop_event(user_id, segment)
+            if event:
                 created_events.append(event)
 
-            # 2. Create transits between stops
-            if len(created_events) > 1:
-                create_transits(batch.user, created_events)
+        if len(created_events) > 1:
+            create_transits(user_id, created_events)
 
-            # 3. finalize batch
-            batch.status = GPSBatch.Status.DONE
-            batch.save()
-
-    except Exception as e:
-        batch.status = GPSBatch.Status.FAILED
-        batch.last_error = str(e)
-        batch.attempts += 1
-        batch.save()
-
-        raise
+    print(f"✅ Created {len(created_events)} stop(s)")

@@ -1,0 +1,12 @@
+{"django": {
+  "image": ":perch-social.django.latest",
+  "ports": {"8000": "HTTP"}
+  },
+  "nginx": {
+    "image": ":perch-social.nginx.latest",
+    "ports": {"80": "HTTP"}
+  },
+  "rq-worker": {
+    "image": ":perch-social.rqworker.latest"
+  }
+}
