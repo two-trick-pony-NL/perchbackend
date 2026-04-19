@@ -19,7 +19,6 @@ dependencies = [
     "redis>=7.4.0",
     "shapely>=2.1.2",
     "stonesoup>=1.8",
-    "uwsgi>=2.0.31",
 ]
 
 
