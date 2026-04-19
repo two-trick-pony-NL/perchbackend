@@ -7,6 +7,8 @@ ENV DJANGO_SETTINGS_MODULE=core.settings
 
 # install uv
 RUN pip install uv
+RUN pip install --upgrade pip
+
 
 WORKDIR /app
 
@@ -15,6 +17,7 @@ COPY pyproject.toml uv.lock* ./
 
 # install deps into environment
 RUN uv sync --frozen
+RUN uv pip freeze > requirements.txt
 RUN pip install -r requirements.txt
 
 # copy app code
