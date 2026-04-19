@@ -81,11 +81,6 @@ jobs:
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-      - name: ⚠️Installing dependencies
-        run: |
-          python3 -m venv venv
-          source venv/bin/activate
-          uv pip freeze > requirements.txt
       - name: 🐳 Create a Docker Container for RQ Worker
         run: docker build -t rqworker:latest -f ./deployment/rq-worker/Dockerfile .
       - name: 📬 Upload Worker image to AWS container register
@@ -145,11 +140,6 @@ jobs:
           run: |
             curl -LsSf https://astral.sh/uv/install.sh | sh
             echo "$HOME/.local/bin" >> $GITHUB_PATH
-        - name: ⚠️Installing dependencies
-          run: |
-            python3 -m venv venv
-            source venv/bin/activate
-            uv pip freeze > requirements.txt
         - name: 🐳 Create a Docker Container for DJANGO
           run: docker build -t django:latest -f ./deployment/django/Dockerfile .
         - name: 📬 Upload Backend image to AWS container register
