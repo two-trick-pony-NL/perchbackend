@@ -136,8 +136,6 @@ jobs:
           run: |
             python3 -m venv venv
             source venv/bin/activate
-            pip install --upgrade pip
-            pip install -r requirements.txt
         - name: 🐳 Create a Docker Container for DJANGO
           run: docker build -t django:latest -f ./deployment/django/Dockerfile .
         - name: 📬 Upload Backend image to AWS container register
