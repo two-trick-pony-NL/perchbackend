@@ -77,6 +77,11 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: ⚠️Installing dependencies
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+          uv pip freeze > requirements.txt
       - name: 🐳 Create a Docker Container for RQ Worker
         run: docker build -t rqworker:latest -f ./deployment/rq-worker/Dockerfile .
       - name: 📬 Upload Worker image to AWS container register
@@ -132,10 +137,11 @@ jobs:
             directory: core
             file_name: .env
             fail_on_empty: false
-        - name: Installing dependencies
+        - name: ⚠️Installing dependencies
           run: |
             python3 -m venv venv
             source venv/bin/activate
+            uv pip freeze > requirements.txt
         - name: 🐳 Create a Docker Container for DJANGO
           run: docker build -t django:latest -f ./deployment/django/Dockerfile .
         - name: 📬 Upload Backend image to AWS container register
