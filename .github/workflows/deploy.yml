@@ -17,39 +17,46 @@ concurrency:
 
 
 jobs:
-  build:
-    name: 🐳 Build & Push Images
+  deploy:
+    name: 🚀 Build & Deploy All Services
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🗂 Checkout
+      - name: 🗂 Checkout code
         uses: actions/checkout@v4
 
-      - name: ⚙️ Install system tools
+      - name: ⚙️ Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y jq unzip
 
-      - name: ☁️ Configure AWS
+      - name: ☁️ Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      - name: 🏗 Build Django
+      - name: 🏢 Install Lightsail CLI
+        run: |
+          curl "https://s3.us-west-2.amazonaws.com/lightsailctl/latest/linux-amd64/lightsailctl" -o lightsailctl
+          sudo mv lightsailctl /usr/local/bin/lightsailctl
+          sudo chmod +x /usr/local/bin/lightsailctl
+          lightsailctl --version
+
+      - name: 🐳 Build Django image
         run: |
           docker build -t django:latest -f ./deployment/django/Dockerfile .
 
-      - name: 🏗 Build Worker
+      - name: 🐳 Build Worker image
         run: |
           docker build -t rqworker:latest -f ./deployment/rq-worker/Dockerfile .
 
-      - name: 🏗 Build NGINX
+      - name: 🐳 Build NGINX image
         run: |
           docker build -t nginx:latest -f ./deployment/nginx/Dockerfile .
 
-      - name: 📦 Push Django
+      - name: 📦 Push Django image
         run: |
           aws lightsail push-container-image \
             --region ${{ env.AWS_REGION }} \
@@ -57,7 +64,7 @@ jobs:
             --label django \
             --image django:latest
 
-      - name: 📦 Push Worker
+      - name: 📦 Push Worker image
         run: |
           aws lightsail push-container-image \
             --region ${{ env.AWS_REGION }} \
@@ -65,7 +72,7 @@ jobs:
             --label rqworker \
             --image rqworker:latest
 
-      - name: 📦 Push NGINX
+      - name: 📦 Push NGINX image
         run: |
           aws lightsail push-container-image \
             --region ${{ env.AWS_REGION }} \
@@ -73,7 +80,7 @@ jobs:
             --label nginx \
             --image nginx:latest
 
-      - name: 🚀 Deploy
+      - name: 🚀 Deploy to Lightsail
         run: |
           aws lightsail create-container-service-deployment \
             --service-name ${{ env.AWS_LIGHTSAIL_SERVICE_NAME }} \
