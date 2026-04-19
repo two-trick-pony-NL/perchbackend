@@ -501,6 +501,7 @@ dependencies = [
     { name = "redis" },
     { name = "shapely" },
     { name = "stonesoup" },
+    { name = "uwsgi" },
 ]
 
 [package.metadata]
@@ -518,6 +519,7 @@ requires-dist = [
     { name = "redis", specifier = ">=7.4.0" },
     { name = "shapely", specifier = ">=2.1.2" },
     { name = "stonesoup", specifier = ">=1.8" },
+    { name = "uwsgi", specifier = ">=2.0.31" },
 ]
 
 [[package]]
@@ -856,6 +858,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/76/c4/f7662574e0d8c883c
 wheels = [
     { url = "https://files.pythonhosted.org/packages/3b/a4/0698f3e5c397442ec9323a537e48cc63b846288b6878d38efd04e91005e3/utm-0.8.1-py3-none-any.whl", hash = "sha256:e3d5e224082af138e40851dcaad08d7f99da1cc4b5c413a7de34eabee35f434a", size = 8613, upload-time = "2025-03-06T11:40:54.273Z" },
 ]
+
+[[package]]
+name = "uwsgi"
+version = "2.0.31"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9f/49/2f57640e889ba509fd1fae10cccec1b58972a07c2724486efba94c5ea448/uwsgi-2.0.31.tar.gz", hash = "sha256:e8f8b350ccc106ff93a65247b9136f529c14bf96b936ac5b264c6ff9d0c76257", size = 822796, upload-time = "2025-10-11T19:17:28.794Z" }
 
 [[package]]
 name = "vine"
