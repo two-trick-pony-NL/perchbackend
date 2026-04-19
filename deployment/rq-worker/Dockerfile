@@ -15,7 +15,7 @@ COPY pyproject.toml uv.lock* ./
 
 # install deps into environment
 RUN uv sync --frozen
-RUN pip install requirements.txt
+RUN pip install -r requirements.txt
 
 # copy app code
 COPY . .
