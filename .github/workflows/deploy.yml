@@ -115,3 +115,5 @@ jobs:
             --service-name ${{ env.AWS_LIGHTSAIL_SERVICE_NAME }} \
             --containers file://deployment/AWS/deploymentconfig.json \
             --public-endpoint file://deployment/AWS/publicendpoint.json
+      - name: 🗑️ Delete old container images
+        run: python deployment/AWS/clear_old_images.py
