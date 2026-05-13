@@ -52,6 +52,11 @@ jobs:
         run: |
           docker build -t rqworker:latest -f ./deployment/rq-worker/Dockerfile .
 
+      - name: 🐳 Build Scheduler image
+        run: |
+          docker build -t rqscheduler:latest -f ./deployment/rq-scheduler/Dockerfile .
+
+
       - name: 🐳 Build NGINX image
         run: |
           docker build -t nginx:latest -f ./deployment/nginx/Dockerfile .
