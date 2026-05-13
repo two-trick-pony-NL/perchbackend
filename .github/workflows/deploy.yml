@@ -76,6 +76,13 @@ jobs:
             --service-name ${{ env.AWS_LIGHTSAIL_SERVICE_NAME }} \
             --label rqworker \
             --image rqworker:latest
+      - name: 📦 Push Worker image
+        run: |
+          aws lightsail push-container-image \
+            --region ${{ env.AWS_REGION }} \
+            --service-name ${{ env.AWS_LIGHTSAIL_SERVICE_NAME }} \
+            --label rqscheduler \
+            --image rqscheduler:latest
 
       - name: 📦 Push NGINX image
         run: |
