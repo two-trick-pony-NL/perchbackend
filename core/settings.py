@@ -31,8 +31,9 @@ DEBUG = os.getenv("DEBUG") == "True"
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = [
+    "perch-social.2ps1g1wgs1ndj.eu-central-1.cs.amazonlightsail.com",
+]
 
 
 
@@ -89,6 +90,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -123,6 +125,11 @@ REST_FRAMEWORK = {
     ]
 }
 
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
@@ -138,7 +145,6 @@ DATABASES = {
     }
 }
 
-print("DATABASE VALUE: ", os.getenv("DB_HOST"))
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators

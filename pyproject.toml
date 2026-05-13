@@ -20,6 +20,7 @@ dependencies = [
     "rq-scheduler>=0.14.0",
     "shapely>=2.1.2",
     "stonesoup>=1.8",
+    "whitenoise>=6.12.0",
 ]
 
 
