@@ -31,9 +31,8 @@ DEBUG = os.getenv("DEBUG") == "True"
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
-ALLOWED_HOSTS = [
-    "perch-social.2ps1g1wgs1ndj.eu-central-1.cs.amazonlightsail.com",
-]
+ALLOWED_HOSTS = ['.amazonlightsail.com', 'localhost', '0.0.0.0', '127.0.0.1',]
+CSRF_TRUSTED_ORIGINS = ['https://localhost','https://*.amazonlightsail.com','https://127.0.0.1']
 
 
 
