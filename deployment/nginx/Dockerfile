@@ -8,10 +8,11 @@ RUN mkdir /tmp/nginx
 
 #Adding Django Static files into nginx so they dont have to be answered by Django
 # COPY staticfiles/ ./static
-COPY staticfiles/ ./staticfiles
+COPY staticfiles/ ./staticfiles/
 
 
 #Specific settings so nginx works as a reverse proxy
 COPY deployment/nginx/default.conf ./etc/nginx/conf.d/default.conf
+
 
 EXPOSE 80
