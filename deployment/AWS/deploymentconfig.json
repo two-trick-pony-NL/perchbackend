@@ -8,5 +8,8 @@
   },
   "rq-worker": {
     "image": ":perch-social.rqworker.latest"
+  },
+  "rq-scheduler": {
+    "image": ":perch-social.rqscheduler.latest"
   }
 }

@@ -1,12 +1,10 @@
 FROM python:3.10-buster
 
-EXPOSE 8000
+EXPOSE 8000/tcp
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV UV_PROJECT_ENVIRONMENT=/app/.venv
-
-WORKDIR /app
+ENV UV_PROJECT_ENVIRONMENT=.venv
 
 RUN pip install uv
 
@@ -16,4 +14,6 @@ RUN uv sync --frozen
 
 COPY . .
 
-CMD ["uv", "run", "gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000"]
+RUN chmod +x deployment/django/entrypoint.sh
+
+CMD ["deployment/django/entrypoint.sh"]
