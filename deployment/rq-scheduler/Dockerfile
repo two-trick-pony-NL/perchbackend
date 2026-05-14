@@ -16,4 +16,4 @@ RUN uv sync --frozen
 
 COPY . .
 
-CMD ["bash", "-c", "exec python manage.py rqscheduler --interval 30"]
+CMD ["python", "deployment/rq-scheduler/scheduler.py"]
