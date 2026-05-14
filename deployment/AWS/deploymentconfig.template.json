@@ -13,7 +13,8 @@
   "rq-scheduler": {
     "image": ":perch-social.rqscheduler.latest",
     "environment": {
-      "REDIS_URL": "__REDIS_URL__"
+      "REDIS_URL": "__REDIS_URL__",
+      "RQ_REDIS_SSL": "1"
     }
   }
 }
