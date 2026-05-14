@@ -164,10 +164,8 @@ def process_gps_stream():
 
                 should_flush = (
                     len(buffer) >= FLUSH_SIZE
-                    or (
-                        last_flush
-                        and (now - last_flush).total_seconds() > FLUSH_SECONDS
-                    )
+                    or last_flush is None
+                    or (now - last_flush).total_seconds() > FLUSH_SECONDS
                 )
 
                 if should_flush:

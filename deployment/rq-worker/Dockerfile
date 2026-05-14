@@ -16,4 +16,4 @@ RUN uv sync --frozen
 
 COPY . .
 
-CMD ["uv", "run", "python", "manage.py", "rqworker", "default"]
+CMD ["uv", "run", "python", "manage.py", "rqworker", "default", "GPS_POINT_INGESTION", "STOP_DETECTION"]
