@@ -6,21 +6,22 @@ if [ -z "$REDIS_URL" ]; then
   exit 1
 fi
 
-# remove scheme
+# strip scheme (redis:// or rediss://)
 URL="${REDIS_URL#*://}"
 
-# split auth and host
+# extract password and host part
 AUTH="${URL%%@*}"
 HOSTPORTDB="${URL#*@}"
 
 PASSWORD="${AUTH#*:}"
 
-HOST="${HOSTPORTDB%%:*}"
-PORT_DB="${HOSTPORTDB#*:}"
-
-PORT="${PORT_DB%%/*}"
-DB="${PORT_DB#*/}"
+# split host:port/db safely
+HOSTPORT="${HOSTPORTDB%/*}"
+DB="${HOSTPORTDB##*/}"
 DB="${DB:-0}"
+
+HOST="${HOSTPORT%%:*}"
+PORT="${HOSTPORT##*:}"
 
 exec rqscheduler \
   --host "$HOST" \
