@@ -24,11 +24,11 @@ PORT="${HOSTPORT##*:}"
 
 echo "HOST=$HOST"
 echo "PORT=$PORT"
-echo "DB=$DB"
+echo "Password=PASSWORD"
 
 exec rqscheduler \
   --host "$HOST" \
   --port "$PORT" \
-  --db "$DB" \
   --password "$PASSWORD" \
-  --interval 30
+  --interval 30 \
+  --db 0
