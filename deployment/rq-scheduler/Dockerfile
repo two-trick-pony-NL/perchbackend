@@ -16,6 +16,7 @@ RUN uv sync --frozen
 
 COPY . .
 
-RUN chmod +x /deployment/rq-scheduler/entrypoint.sh
+COPY deployment/rq-scheduler/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-CMD ["/deployment/rq-scheduler/entrypoint.sh"]
+CMD ["/entrypoint.sh"]
