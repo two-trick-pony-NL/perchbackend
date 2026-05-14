@@ -16,4 +16,4 @@ RUN uv sync --frozen
 
 COPY . .
 
-CMD ["python", "deployment/rq-scheduler/scheduler.py"]
+CMD ["rqscheduler", "--interval", "30"]

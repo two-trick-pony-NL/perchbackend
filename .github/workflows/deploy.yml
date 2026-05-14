@@ -40,6 +40,14 @@ jobs:
           directory: core
           file_name: .env
           fail_on_empty: false
+      - name: Generate Lightsail deployment config
+        run: |
+          REDIS_URL="rediss://${{ secrets.REDIS_USER }}:${{ secrets.REDIS_PASSWORD }}@${{ secrets.REDIS_HOST }}:6379"
+      
+          sed \
+            -e "s|__REDIS_URL__|$REDIS_URL|g" \
+            deployment/AWS/deploymentconfig.template.json \
+            > deployment/AWS/deploymentconfig.generated.json
 
       - name: ⚙️ Install system dependencies
         run: |
@@ -113,7 +121,7 @@ jobs:
         run: |
           aws lightsail create-container-service-deployment \
             --service-name ${{ env.AWS_LIGHTSAIL_SERVICE_NAME }} \
-            --containers file://deployment/AWS/deploymentconfig.json \
+            --containers file://deployment/AWS/deploymentconfig.generated.json \
             --public-endpoint file://deployment/AWS/publicendpoint.json
       - name: 🗑️ Delete old container images
         run: python deployment/AWS/clear_old_images.py
