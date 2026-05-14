@@ -13,10 +13,6 @@
   "rq-scheduler": {
     "image": ":perch-social.rqscheduler.latest",
     "environment": {
-      "REDIS_HOST": "__REDIS_HOST__",
-      "REDIS_USER": "__REDIS_USER__",
-      "REDIS_PASSWORD": "__REDIS_PASSWORD__",
-      "REDIS_PORT": "6379",
       "REDIS_URL": "__REDIS_URL__"
     }
   }
